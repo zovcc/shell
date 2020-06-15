@@ -27,7 +27,7 @@ export function is_tweening(a: Clutter.Actor) {
 }
 
 export function on_tween_completion(meta: Meta.Window, callback: () => void): SignalID {
-    return GLib.timeout_add(150, GLib.PRIORITY_DEFAULT, () => {
+    return GLib.timeout_add(GLib.PRIORITY_DEFAULT, 150, () => {
         const actor = meta.get_compositor_private();
         if (actor && is_tweening(actor)) return true;
 

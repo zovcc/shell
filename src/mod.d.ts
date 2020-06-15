@@ -23,9 +23,10 @@ declare interface GLib {
     signal_handler_block(object: GObject.Object, signal: SignalID): void;
     signal_handler_unblock(object: GObject.Object, signal: SignalID): void;
 
+    source_remove(id: SignalID): void;
     spawn_command_line_sync(cmd: string): ProcessResult;
 
-    timeout_add(ms: number, priority: any, callback: () => Boolean): number;
+    timeout_add(priority: number, ms: number, callback: () => Boolean): number;
 }
 
 declare namespace GObject {
@@ -89,8 +90,13 @@ declare namespace Clutter {
         set_child_below_sibling(child: Actor, sibling: Actor | null): void;
         set_easing_duration(msecs: number | null): void;
         set_opacity(value: number): void;
+        set_size(width: number, height: number): void;
         set_y_align(align: ActorAlign): void;
         show(): void;
+    }
+
+    interface ActorBox {
+        new(x: number, y: number, width: number, height: number): ActorBox;
     }
 
     interface Text extends Actor {
