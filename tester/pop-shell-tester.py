@@ -7,10 +7,17 @@ gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck
 from gi.repository import Gtk
 
+class bcolors:
+    PASS = "\033[92m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    
 print("")
+testsPassed = 0
+testsFailed = 0
 
 def getAllWindows():
-  time.sleep(1)
+  time.sleep(0.5)
   screen = Wnck.Screen.get_default()
   screen.force_update()
   while Gtk.events_pending():
@@ -19,7 +26,7 @@ def getAllWindows():
   return screen.get_windows()
 
 def getActiveWindow():
-  time.sleep(1)
+  time.sleep(0.5)
   screen = Wnck.Screen.get_default()
   screen.force_update()
   while Gtk.events_pending():
@@ -28,7 +35,7 @@ def getActiveWindow():
   return screen.get_active_window()
 
 def getActiveWindowName():
-  time.sleep(1)
+  time.sleep(0.5)
   screen = Wnck.Screen.get_default()
   screen.force_update()
   while Gtk.events_pending():
@@ -44,6 +51,102 @@ def getScreenDimensions():
   screenHeight = screen.get_height()
   screenDimensions = [screenWidth, screenHeight]
   return screenDimensions
+
+def increaseWidth():
+  global testsPassed
+  global testsFailed
+  pyautogui.hotkey('winleft', 'enter')
+  oldWidth = getActiveWindow().get_geometry()[2]
+  oldHeight = getActiveWindow().get_geometry()[3]
+  # print("Old window dimensions: " + str(oldWidth) + " by " + str(oldHeight))
+  time.sleep(0.25)
+  pyautogui.hotkey('shiftleft', 'right')
+  time.sleep(0.25)
+  pyautogui.hotkey('enter')
+  newWidth = getActiveWindow().get_geometry()[2]
+  newHeight = getActiveWindow().get_geometry()[3]
+  # print("New window dimensions: " + str(newWidth) + " by " + str(newHeight))
+  if newWidth > oldWidth:
+    print(bcolors.PASS + "PASS:" + bcolors.ENDC + " Shift-Right increased window size.")
+    testsPassed += 1
+  elif newWidth < oldWidth:
+    print(bcolors.FAIL + "FAIL:" + bcolors.ENDC + " Shift-Right should have increased window size, but it decreased instead.")
+    testsFailed += 1
+  elif newWidth == oldWidth:
+    print(bcolors.FAIL + "FAIL:" + bcolors.ENDC + " Shift-Right did not change window size.")
+    testsFailed += 1
+
+def increaseHeight():
+  global testsPassed
+  global testsFailed
+  pyautogui.hotkey('winleft', 'enter')
+  oldWidth = getActiveWindow().get_geometry()[2]
+  oldHeight = getActiveWindow().get_geometry()[3]
+  # print("Old window dimensions: " + str(oldWidth) + " by " + str(oldHeight))
+  time.sleep(0.25)
+  pyautogui.hotkey('shiftleft', 'down')
+  time.sleep(0.25)
+  pyautogui.hotkey('enter')
+  newWidth = getActiveWindow().get_geometry()[2]
+  newHeight = getActiveWindow().get_geometry()[3]
+  # print("New window dimensions: " + str(newWidth) + " by " + str(newHeight))
+  if newHeight > oldHeight:
+    print(bcolors.PASS + "PASS:" + bcolors.ENDC + " Shift-Down increased window size.")
+    testsPassed += 1
+  elif newHeight < oldHeight:
+    print(bcolors.FAIL + "FAIL:" + bcolors.ENDC + " Shift-Down should have increased window size, but it decreased instead.")
+    testsFailed += 1
+  elif newHeight == oldHeight:
+    print(bcolors.FAIL + "FAIL:" + bcolors.ENDC + " Shift-Down did not change window size.")
+    testsFailed += 1
+
+def decreaseWidth():
+  global testsPassed
+  global testsFailed
+  pyautogui.hotkey('winleft', 'enter')
+  oldWidth = getActiveWindow().get_geometry()[2]
+  oldHeight = getActiveWindow().get_geometry()[3]
+  # print("Old window dimensions: " + str(oldWidth) + " by " + str(oldHeight))
+  time.sleep(0.25)
+  pyautogui.hotkey('shiftleft', 'left')
+  time.sleep(0.25)
+  pyautogui.hotkey('enter')
+  newWidth = getActiveWindow().get_geometry()[2]
+  newHeight = getActiveWindow().get_geometry()[3]
+  # print("New window dimensions: " + str(newWidth) + " by " + str(newHeight))
+  if newWidth < oldWidth:
+    print(bcolors.PASS + "PASS:" + bcolors.ENDC + " Shift-Left decreased window size.")
+    testsPassed += 1
+  elif newWidth > oldWidth:
+    print(bcolors.FAIL + "FAIL:" + bcolors.ENDC + " Shift-Left should have decreased window size, but it increased instead.")
+    testsFailed += 1
+  elif newWidth == oldWidth:
+    print(bcolors.FAIL + "FAIL:" + bcolors.ENDC + " Shift-Left did not change window size.")
+    testsFailed += 1
+
+def decreaseHeight():
+  global testsPassed
+  global testsFailed
+  pyautogui.hotkey('winleft', 'enter')
+  oldWidth = getActiveWindow().get_geometry()[2]
+  oldHeight = getActiveWindow().get_geometry()[3]
+  # print("Old window dimensions: " + str(oldWidth) + " by " + str(oldHeight))
+  time.sleep(0.25)
+  pyautogui.hotkey('shiftleft', 'up')
+  time.sleep(0.25)
+  pyautogui.hotkey('enter')
+  newWidth = getActiveWindow().get_geometry()[2]
+  newHeight = getActiveWindow().get_geometry()[3]
+  # print("New window dimensions: " + str(newWidth) + " by " + str(newHeight))
+  if newHeight < oldHeight:
+    print(bcolors.PASS + "PASS:" + bcolors.ENDC + " Shift-Up decreased window size.")
+    testsPassed += 1
+  elif newHeight > oldHeight:
+    print(bcolors.FAIL + "FAIL:" + bcolors.ENDC + " Shift-Up should have decreased window size, but it increased instead.")
+    testsFailed += 1
+  elif newHeight == oldHeight:
+    print(bcolors.FAIL + "FAIL:" + bcolors.ENDC + " Shift-Up did not change window size.")
+    testsFailed += 1
 
 # TEST ITEM: Super + direction keys changes focus in the correct direction
 # start with focus at bottom right
@@ -155,38 +258,113 @@ if topLeft == None or bottomLeft == None or topRight == None or bottomRight == N
 print("")
 
 if getActiveWindow() == bottomRight:
-  print("PASS: test is starting with bottom right window selected.")
+  print(bcolors.PASS + "PASS:" + bcolors.ENDC + " test is starting with bottom right window selected.")
+  testsPassed += 1
 else:
-  print("FAIL: bottom right window is not selected at beginning of test.")
+  print(bcolors.FAIL + "FAIL:" + bcolors.ENDC + " bottom right window is not selected at beginning of test.")
+  testsFailed += 1
   print("Bottom right application: " + str(bottomRight.get_application().get_name()))
   print("Selected application: " + str(getActiveWindowName()))
 
 
 pyautogui.hotkey('winleft', 'left')
 if getActiveWindow() == bottomLeft:
-  print("PASS: bottom left window is selected after moving left from bottom right.")
+  print(bcolors.PASS + "PASS:" + bcolors.ENDC + " bottom left window is selected after moving left from bottom right.")
+  testsPassed += 1
 else:
-  print("FAIL: bottom left window is not selected after moving left from bottom right.")
+  print(bcolors.FAIL + "FAIL:" + bcolors.ENDC + " bottom left window is not selected after moving left from bottom right.")
+  testsFailed += 1
 print("Active window: " + getActiveWindowName())
+time.sleep(0.2)
 
 pyautogui.hotkey('winleft', 'up')
 if getActiveWindow() == topLeft:
-  print("PASS: top left window is selected after moving up from bottom left.")
+  print(bcolors.PASS + "PASS:" + bcolors.ENDC + " top left window is selected after moving up from bottom left.")
+  testsPassed += 1
 else:
-  print("FAIL: top left window is not selected after moving up from bottom left.")
+  print(bcolors.FAIL + "FAIL:" + bcolors.ENDC + " top left window is not selected after moving up from bottom left.")
+  testsFailed += 1
 print("Active window: " + getActiveWindowName())
+time.sleep(0.2)
 
 pyautogui.hotkey('winleft', 'right')
 if getActiveWindow() == topRight:
-  print("PASS: top right window is selected after moving right from top left.")
+  print(bcolors.PASS + "PASS:" + bcolors.ENDC + " top right window is selected after moving right from top left.")
+  testsPassed += 1
 else:
-  print("FAIL: top right window is not selected after moving right from top left.")
+  print(bcolors.FAIL + "FAIL:" + bcolors.ENDC + " top right window is not selected after moving right from top left.")
+  testsFailed += 1
 print("Active window: " + getActiveWindowName())
+time.sleep(0.2)
 
 pyautogui.hotkey('winleft', 'down')
 if getActiveWindow() == bottomRight:
-  print("PASS: bottom right window is selected after moving down from top right.")
+  print(bcolors.PASS + "PASS:" + bcolors.ENDC + " bottom right window is selected after moving down from top right.")
+  testsPassed += 1
 else:
-  print("FAIL: bottom right window is not selected after moving down from top right.")
+  print(bcolors.FAIL + "FAIL:" + bcolors.ENDC + " bottom right window is not selected after moving down from top right.")
+  testsFailed += 1
 print("Active window: " + getActiveWindowName())
+time.sleep(0.2)
 
+# TEST ITEM: Windows can be resized with the keyboard (Test resizing four windows above, below, right, and left to ensure shortcut consistency)
+
+## Select the top-left window
+pyautogui.hotkey('winleft', 'up')
+pyautogui.hotkey('winleft', 'left')
+if getActiveWindow() == topLeft:
+  print(bcolors.PASS + "PASS:" + bcolors.ENDC + " top left window is selected after moving up, left from bottom right.")
+  testsPassed += 1
+else:
+  print(bcolors.FAIL + "FAIL:" + bcolors.ENDC + " top left window is not selected after moving up, left from bottom right.")
+  testsFailed += 1
+# print("Active window: " + getActiveWindowName())
+increaseWidth()
+increaseHeight()
+decreaseWidth()
+decreaseHeight()
+
+## Select the bottom-left window
+pyautogui.hotkey('winleft', 'down')
+if getActiveWindow() == bottomLeft:
+  print(bcolors.PASS + "PASS:" + bcolors.ENDC + " bottom left window is selected after moving down from top left.")
+  testsPassed += 1
+else:
+  print(bcolors.FAIL + "FAIL:" + bcolors.ENDC + " bottom left window is not selected after moving down from top left.")
+  testsFailed += 1
+# print("Active window: " + getActiveWindowName())
+increaseWidth()
+increaseHeight()
+decreaseWidth()
+decreaseHeight()
+
+## Select the bottom-right window
+pyautogui.hotkey('winleft', 'right')
+if getActiveWindow() == bottomRight:
+  print(bcolors.PASS + "PASS:" + bcolors.ENDC + " bottom right window is selected after moving right from bottom left.")
+  testsPassed += 1
+else:
+  print(bcolors.FAIL + "FAIL:" + bcolors.ENDC + " bottom right window is not selected after moving right from bottom left.")
+  testsFailed += 1
+# print("Active window: " + getActiveWindowName())
+increaseWidth()
+increaseHeight()
+decreaseWidth()
+decreaseHeight()
+
+## Select the top-right window
+pyautogui.hotkey('winleft', 'up')
+if getActiveWindow() == topRight:
+  print(bcolors.PASS + "PASS:" + bcolors.ENDC + " top right window is selected after moving up from bottom right.")
+  testsPassed += 1
+else:
+  print(bcolors.FAIL + "FAIL:" + bcolors.ENDC + " top right window is not selected after moving up from bottom right.")
+  testsFailed += 1
+# print("Active window: " + getActiveWindowName())
+increaseWidth()
+increaseHeight()
+decreaseWidth()
+decreaseHeight()
+
+print("")
+print(str(testsPassed) + " tests passed, " + str(testsFailed) + " tests failed.")
