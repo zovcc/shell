@@ -73,7 +73,12 @@
         <!-- Window Management Keys -->
         <key type="as" name="toggle-stacking">
             <default><![CDATA[['s']]]></default>
-            <summary>Toggle stacking mode</summary>
+            <summary>Toggle stacking mode inside management mode</summary>
+        </key>
+
+        <key type="as" name="toggle-stacking-global">
+            <default><![CDATA[['<Super>s']]]></default>
+            <summary>Toggle stacking mode outside management mode</summary>
         </key>
 
         <key type="as" name="management-orientation">

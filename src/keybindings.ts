@@ -49,6 +49,7 @@ export class Keybindings {
             "tile-orientation": () => ext.auto_tiler?.toggle_orientation(ext),
             "toggle-floating": () => ext.auto_tiler?.toggle_floating(ext),
             "toggle-tiling": () => ext.toggle_tiling(),
+            "toggle-stacking-global": () => ext.auto_tiler?.toggle_stacking(ext),
         };
     }
 
