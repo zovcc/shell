@@ -137,7 +137,6 @@ export class Forest extends Ecs.World {
         for (const [entity, fork] of this.forks.iter()) {
             if (fork.left.is_window(onto_entity)) {
                 if (fork.right) {
-                    global.log(`attaching left`);
                     const area = fork.area_of_left(ext);
                     const [fork_entity, new_fork] = this.create_fork(fork.left, right_node, area, fork.workspace);
 
@@ -211,9 +210,6 @@ export class Forest extends Ecs.World {
         const entity = this.create_entity();
         let orient = area.width > area.height ? Lib.Orientation.HORIZONTAL : Lib.Orientation.VERTICAL;
         let fork = new Fork.Fork(entity, left, right, area, workspace, orient);
-
-        global.log(`fork width ${area.width} > height ${area.height} ? ${area.width > area.height}`);
-
         this.forks.insert(entity, fork);
         return [entity, fork];
     }

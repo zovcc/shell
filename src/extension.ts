@@ -337,6 +337,11 @@ export class Ext extends Ecs.System<ExtEvent> {
         return global.workspace_manager.get_active_workspace_index();
     }
 
+    actor_of(entity: Entity): null | Clutter.Actor {
+        const window = this.windows.get(entity);
+        return window ? window.meta.get_compositor_private() : null;
+    }
+
     /// Connects a callback signal to a GObject, and records the signal.
     connect(object: GObject.Object, property: string, callback: (...args: any) => boolean | void): SignalID {
         const signal = object.connect(property, callback);
@@ -594,6 +599,10 @@ export class Ext extends Ecs.System<ExtEvent> {
 
         this.active_hint?.track(win);
 
+        function activate_in_stack(ext: Ext, stack: node.NodeStack, win: Window.ShellWindow) {
+            ext.auto_tiler?.forest.stacks.get(stack.idx)?.activate(win.entity);
+        }
+
         if (this.auto_tiler) {
             win.meta.raise();
 
@@ -603,21 +612,9 @@ export class Ext extends Ecs.System<ExtEvent> {
                 const fork = this.auto_tiler.forest.forks.get(attached);
                 if (fork) {
                     if (fork.left.is_in_stack(win.entity)) {
-                        const container = this.auto_tiler.forest.stacks.get((fork.left.inner as node.NodeStack).idx);
-                        if (container) {
-                            container.activate(win.entity);
-                            win.meta.raise();
-                            win.meta.unminimize();
-                            win.meta.activate(global.get_current_time());
-                        }
+                        activate_in_stack(this, (fork.left.inner as node.NodeStack), win);
                     } else if (fork.right?.is_in_stack(win.entity)) {
-                        const container = this.auto_tiler.forest.stacks.get((fork.right.inner as node.NodeStack).idx);
-                        if (container) {
-                            container.activate(win.entity);
-                            win.meta.raise();
-                            win.meta.unminimize();
-                            win.meta.activate(global.get_current_time());
-                        }
+                        activate_in_stack(this, (fork.right.inner as node.NodeStack), win);
                     }
                 }
             }
@@ -638,7 +635,7 @@ export class Ext extends Ecs.System<ExtEvent> {
             }
         }
 
-        Log.info(`Focused Window(${win.entity})`);
+        // Log.debug(`Focused Window(${win.entity})`);
     }
 
     on_gap_inner() {

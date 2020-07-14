@@ -5,9 +5,9 @@ import type { Entity } from './ecs';
 import type { Ext } from './extension';
 
 import * as Ecs from 'ecs';
+import * as Rect from 'rectangle';
 
 const { St } = imports.gi;
-const GLib: GLib = imports.gi.GLib;
 
 interface Component {
     entity: Entity;
@@ -33,10 +33,19 @@ export class Stack {
 
     workspace: number;
 
-    keep_in_back: SignalID = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 100, () => {
-        if (this.container.visible) global.window_group.set_child_at_index(this.container, 1);
+    private restacker: SignalID = (global.display as GObject.Object).connect('restacked', () => {
+        if (this.container.visible) {
+            // Check if a fullscreen window is above our stack.
+            const focused = global.display.get_focus_window() as (null | Meta.Window);
+            if (focused) {
+                const r = Rect.Rectangle.from_meta(focused.get_frame_rect());
+                if (r.contains(this.container)) return;
+            }
 
-        return true;
+            // Place actors if it's found that we're not behind a fullscreen window
+            global.window_group.set_child_at_index(this.container, 1);
+            global.window_group.set_child_above_sibling(this.tabs, null);
+        }
     });
 
     constructor(active: Entity, workspace: number) {
@@ -44,9 +53,7 @@ export class Stack {
         this.workspace = workspace;
 
         global.window_group.insert_child_at_index(this.container, 1);
-        this.container.add_child(this.tabs);
-
-        this.container.connect('destroy', () => GLib.source_remove(this.keep_in_back));
+        global.window_group.add_child(this.tabs);
     }
 
     activate(entity: Entity) {
@@ -76,17 +83,25 @@ export class Stack {
 
     destroy() {
         global.window_group.remove_child(this.container);
+        global.window_group.remove_child(this.tabs);
+        global.display.disconnect(this.restacker);
         this.container.destroy();
+        this.tabs.destroy();
     }
 
     update_positions(_ext: Ext, dpi: number, rect: Rectangular) {
         const width = 4 * dpi;
         const tabs_height = width * 6;
+
         this.container.x = rect.x;
         this.container.y = rect.y - tabs_height;
         this.container.width = rect.width;
         this.container.height = tabs_height + rect.height;
+
+        this.tabs.x = rect.x;
+        this.tabs.y = this.container.y;
         this.tabs.height = tabs_height;
+        this.tabs.width = rect.width;
     }
 
     update_tabs(ext: Ext, data: Array<[Entity, string]>) {
@@ -148,9 +163,13 @@ export class Stack {
         if (visible) {
             this.container.show();
             this.container.visible = true;
+            this.tabs.show();
+            this.tabs.visible = true;
         } else {
             this.container.visible = false;
             this.container.hide();
+            this.tabs.visible = false;
+            this.tabs.hide();
         }
     }
 }

@@ -387,11 +387,8 @@ export class AutoTiler {
     }
 
     windows_are_siblings(a: Entity, b: Entity): Entity | null {
-        global.log(`a(${a}); b: ${b}`)
         const a_parent = this.attached.get(a);
         const b_parent = this.attached.get(b);
-
-        global.log(`a(${a}): ${a_parent}; b(${b}): ${b_parent}`);
 
         if (a_parent !== null && null !== b_parent && ecs.entity_eq(a_parent, b_parent)) {
             return a_parent;
