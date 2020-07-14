@@ -33,20 +33,7 @@ export class Stack {
 
     workspace: number;
 
-    private restacker: SignalID = (global.display as GObject.Object).connect('restacked', () => {
-        if (this.container.visible) {
-            // Check if a fullscreen window is above our stack.
-            const focused = global.display.get_focus_window() as (null | Meta.Window);
-            if (focused) {
-                const r = Rect.Rectangle.from_meta(focused.get_frame_rect());
-                if (r.contains(this.container)) return;
-            }
-
-            // Place actors if it's found that we're not behind a fullscreen window
-            global.window_group.set_child_at_index(this.container, 1);
-            global.window_group.set_child_above_sibling(this.tabs, null);
-        }
-    });
+    private restacker: SignalID = (global.display as GObject.Object).connect('restacked', () => this.restack());
 
     constructor(active: Entity, workspace: number) {
         this.active = active;
@@ -73,6 +60,8 @@ export class Stack {
             component.button.set_style_class_name(name);
             id += 1;
         }
+
+        this.restack();
     }
 
     clear() {
@@ -87,6 +76,46 @@ export class Stack {
         global.display.disconnect(this.restacker);
         this.container.destroy();
         this.tabs.destroy();
+    }
+
+    remove_tab(entity: Entity) {
+        let idx = 0;
+        for (const window of this.windows) {
+            if (Ecs.entity_eq(window.entity, entity)) {
+                this.tabs.remove_child(window.button);
+                this.windows.splice(idx, 1);
+                break
+            }
+        }
+    }
+
+    restack() {
+        if (this.container.visible) {
+            // Check if a fullscreen window is above our stack.
+            const focused = global.display.get_focus_window() as (null | Meta.Window);
+            if (focused) {
+                const r = Rect.Rectangle.from_meta(focused.get_frame_rect());
+                if (r.contains(this.container)) return;
+            }
+
+            // Place actors if it's found that we're not behind a fullscreen window
+            global.window_group.set_child_at_index(this.container, 1);
+            global.window_group.set_child_above_sibling(this.tabs, null);
+        }
+    }
+
+    set_visible(visible: boolean) {
+        if (visible) {
+            this.container.show();
+            this.container.visible = true;
+            this.tabs.show();
+            this.tabs.visible = true;
+        } else {
+            this.container.visible = false;
+            this.container.hide();
+            this.tabs.visible = false;
+            this.tabs.hide();
+        }
     }
 
     update_positions(_ext: Ext, dpi: number, rect: Rectangular) {
@@ -145,31 +174,6 @@ export class Stack {
 
             this.windows.push({ entity, button });
             this.tabs.add_actor(button);
-        }
-    }
-
-    remove_tab(entity: Entity) {
-        let idx = 0;
-        for (const window of this.windows) {
-            if (Ecs.entity_eq(window.entity, entity)) {
-                this.tabs.remove_child(window.button);
-                this.windows.splice(idx, 1);
-                break
-            }
-        }
-    }
-
-    set_visible(visible: boolean) {
-        if (visible) {
-            this.container.show();
-            this.container.visible = true;
-            this.tabs.show();
-            this.tabs.visible = true;
-        } else {
-            this.container.visible = false;
-            this.container.hide();
-            this.tabs.visible = false;
-            this.tabs.hide();
         }
     }
 }
