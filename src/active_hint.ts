@@ -46,6 +46,10 @@ export class ActiveHint {
 
     window: WindowDetails | null = null;
 
+    restacker: SignalID = (global.display as GObject.Object).connect('restacked', () => {
+        if (this.window) this.restack(this.window.meta);
+    });
+
     constructor(dpi: number) {
         this.dpi = dpi;
 
@@ -79,6 +83,13 @@ export class ActiveHint {
         for (const box of this.border) {
             box.visible = true;
             box.show();
+        }
+    }
+
+    restack(window: Meta.Window) {
+        const actor = window.get_compositor_private();
+        for (const box of this.border) {
+            global.window_group.set_child_above_sibling(box, actor);
         }
     }
 
@@ -118,6 +129,8 @@ export class ActiveHint {
                 return false;
             });
         }
+
+        this.restack(window.meta);
     }
 
     untrack() {
