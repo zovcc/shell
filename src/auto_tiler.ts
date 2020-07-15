@@ -324,6 +324,7 @@ export class AutoTiler {
                     // If the stack contains 1 item, unstack it
                     const stack = branch.inner as node.NodeStack;
                     if (stack.entities.length === 1) {
+                        focused.stack = null;
                         this.forest.stacks.remove(stack.idx)?.destroy();
                         fork.measure(this.forest, ext, fork.area, this.forest.on_record());
                         return node.Node.window(focused.entity);
@@ -334,8 +335,8 @@ export class AutoTiler {
 
                 if (fork.left.is_window(focused.entity)) {
                     // Assign left window as stack.
-                    const stack_ = this.forest.stacks.insert(new Stack(focused.entity, fork.workspace));
-                    fork.left = node.Node.stacked(focused.entity, stack_);
+                    focused.stack = this.forest.stacks.insert(new Stack(focused.entity, fork.workspace));
+                    fork.left = node.Node.stacked(focused.entity, focused.stack);
                     stack = fork.left.inner as node.NodeStack;
                     fork.measure(this.forest, ext, fork.area, this.forest.on_record());
                 } else if (fork.left.is_in_stack(focused.entity)) {
@@ -343,8 +344,8 @@ export class AutoTiler {
                     if (node) fork.left = node;
                 } else if (fork.right?.is_window(focused.entity)) {
                     // Assign right window as stack
-                    const stack_ = this.forest.stacks.insert(new Stack(focused.entity, fork.workspace));
-                    fork.right = node.Node.stacked(focused.entity, stack_);
+                    focused.stack = this.forest.stacks.insert(new Stack(focused.entity, fork.workspace));
+                    fork.right = node.Node.stacked(focused.entity, focused.stack);
                     stack = fork.right.inner as node.NodeStack;
                     fork.measure(this.forest, ext, fork.area, this.forest.on_record());
                 } else if (fork.right?.is_in_stack(focused.entity)) {
@@ -364,14 +365,13 @@ export class AutoTiler {
             const container = this.forest.stacks.get(stack.idx);
             if (container) {
                 let data = new Array();
-                let windows = new Array();
 
                 // Collect names of each entity in the stack
                 for (const entity of stack.entities) {
                     const window = ext.windows.get(entity);
                     if (window) {
+                        window.stack = stack.idx;
                         data.push([entity, window.name(ext)]);
-                        windows.push(window.meta);
                     }
                 }
 

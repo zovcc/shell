@@ -15,15 +15,17 @@ interface Component {
 }
 
 export class Stack {
-    private container = new St.BoxLayout({
+    container: St.Widget = new St.BoxLayout({
         style_class: 'pop-shell-stack-bg',
         vertical: true
     });
 
-    private tabs = new St.BoxLayout({
+    tabs: St.Widget = new St.BoxLayout({
         style_class: 'pop-shell-stack',
         x_expand: true
     });
+
+    destroyed = false;
 
     active: Entity;
 
@@ -76,6 +78,7 @@ export class Stack {
         global.display.disconnect(this.restacker);
         this.container.destroy();
         this.tabs.destroy();
+        this.destroyed = true;
     }
 
     remove_tab(entity: Entity) {
@@ -168,12 +171,13 @@ export class Stack {
                         button.set_style_class_name('pop-shell-tab-active');
                     } else {
                         this.remove_tab(entity);
+                        window.stack = null;
                     }
                 }
             });
 
             this.windows.push({ entity, button });
-            this.tabs.add_actor(button);
+            this.tabs.add(button);
         }
     }
 }

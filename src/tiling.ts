@@ -173,6 +173,7 @@ export class Tiler {
                             // Move focused window in stack to the left
                             case Direction.Left:
                                 if (!Node.stack_move_left(ext.auto_tiler.forest, stack, focused.entity)) {
+                                    focused.stack = null;
                                     if (move_to !== null && move_to instanceof ShellWindow) {
                                         // Detach from stack, and move to window
                                         this.move_auto(ext, focused, move_to);
@@ -214,6 +215,7 @@ export class Tiler {
                             // Move focused window in stack to the right
                             case Direction.Right:
                                 if (!Node.stack_move_right(ext.auto_tiler.forest, stack, focused.entity)) {
+                                    focused.stack = null;
                                     if (move_to !== null && move_to instanceof ShellWindow) {
                                         this.move_auto(ext, focused, move_to);
                                     } else if (fork.right) {
@@ -432,6 +434,7 @@ export class Tiler {
 
                             if (fork.left.inner.kind === 3) {
                                 Node.stack_remove(ext.auto_tiler.forest, fork.left.inner, focused.entity);
+                                focused.stack = null;
                             } else {
                                 const temp = fork.right;
 

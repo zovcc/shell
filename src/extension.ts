@@ -450,7 +450,7 @@ export class Ext extends Ecs.System<ExtEvent> {
 
             const focused = this.focus_window();
             if (focused) {
-                this.active_hint.track(focused);
+                this.active_hint.track_window(this, focused);
             }
         } else if (this.active_hint) {
             this.active_hint.destroy();
@@ -462,14 +462,21 @@ export class Ext extends Ecs.System<ExtEvent> {
         const cws = this.workspace_id(null);
 
         const refocus_hint = () => {
-            if (!this.active_hint?.window) return
+            if (!this.active_hint?.tracked) return
 
-            const active = this.windows.get(this.active_hint.window.entity);
-            if (!active) return;
+            let show = false;
+            if (this.active_hint.tracked.kind === 1) {
+                const active = this.windows.get(this.active_hint.tracked.entity);
+                if (!active) return;
 
-            const aws = this.workspace_id(active);
+                const aws = this.workspace_id(active);
 
-            if (aws[0] === cws[0] && aws[1] === cws[1]) {
+                show = aws[0] === cws[0] && aws[1] === cws[1];
+            } else {
+                show = cws[1] === this.active_hint.tracked.stack.workspace;
+            }
+
+            if (show) {
                 this.active_hint.show();
             } else {
                 this.active_hint.hide();
@@ -597,7 +604,7 @@ export class Ext extends Ecs.System<ExtEvent> {
         this.prev_focused = this.last_focused;
         this.last_focused = win.entity;
 
-        this.active_hint?.track(win);
+        this.active_hint?.track_window(this, win);
 
         function activate_in_stack(ext: Ext, stack: node.NodeStack, win: Window.ShellWindow) {
             ext.auto_tiler?.forest.stacks.get(stack.idx)?.activate(win.entity);
@@ -880,11 +887,19 @@ export class Ext extends Ecs.System<ExtEvent> {
     }
 
     on_overview_hidden() {
-        if (this.active_hint && this.active_hint.window) {
-            let window = this.active_hint.window.meta;
-            if (!window.get_maximized()) {
-                this.active_hint.show();
+        if (this.active_hint?.tracked) {
+            let show = false;
+            const t = this.active_hint.tracked;
+
+            if (t.kind === 1) {
+                if (!t.meta.get_maximized()) {
+                    show = true;
+                }
+            } else {
+                show = true;
             }
+
+            if (show) this.active_hint.show();
         }
     }
 

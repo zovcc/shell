@@ -159,7 +159,9 @@ export class Forest extends Ecs.World {
                     return this._attach(onto_entity, new_entity, this.on_attach, entity, fork, null);
                 }
             } else if (fork.left.is_in_stack(onto_entity)) {
-                return this.attach_stack(fork.left.inner as Node.NodeStack, fork, new_entity);
+                const stack = fork.left.inner as Node.NodeStack;
+                ext.windows.with(new_entity, (window) => window.stack = stack.idx);
+                return this.attach_stack(stack, fork, new_entity);
             } else if (fork.right) {
                 if (fork.right.is_window(onto_entity)) {
                     const area = fork.area_of_right(ext);
@@ -179,7 +181,9 @@ export class Forest extends Ecs.World {
                     this.parents.insert(fork_entity, entity);
                     return this._attach(onto_entity, new_entity, this.on_attach, entity, fork, [fork_entity, new_fork]);
                 } else if (fork.right.is_in_stack(onto_entity)) {
-                    return this.attach_stack(fork.right.inner as Node.NodeStack, fork, new_entity);
+                    const stack = fork.right.inner as Node.NodeStack;
+                    ext.windows.with(new_entity, (window) => window.stack = stack.idx);
+                    return this.attach_stack(stack, fork, new_entity);
                 }
             }
         }

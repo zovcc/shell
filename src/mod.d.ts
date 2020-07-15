@@ -76,6 +76,7 @@ declare namespace Clutter {
 
         add(child: Actor): void;
         destroy(): void;
+        destroy_all_children(): void;
         ease(params: Object): void;
         hide(): void;
         get_child_at_index(nth: number): Clutter.Actor | null;

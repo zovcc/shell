@@ -2,24 +2,36 @@
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 
 import type { Entity } from './ecs';
+import type { Ext } from './extension';
 import type { ShellWindow } from "./window";
+import type { Stack } from './stack';
 
 import * as Ecs from 'ecs';
 
 const { GLib, St } = imports.gi;
 
-interface WindowDetails {
+type Tracked = WindowDetails | StackDetails;
+
+interface Details {
+    sources: Array<number>;
+}
+
+interface WindowDetails extends Details {
+    kind: 1
     entity: Entity;
     meta: Meta.Window;
     parent: Clutter.Actor;
-    source1: number;
-    source2: number;
+}
+
+interface StackDetails extends Details {
+    kind: 2
+    stack: Stack;
 }
 
 export class ActiveHint {
     dpi: number;
 
-    private border: [Clutter.Actor, Clutter.Actor, Clutter.Actor, Clutter.Actor] = [
+    private border: [St.Widget, St.Widget, St.Widget, St.Widget] = [
         new St.BoxLayout({
             reactive: false,
             style_class: 'pop-shell-active-hint',
@@ -44,10 +56,22 @@ export class ActiveHint {
 
     private tracking: number | null = null;
 
-    window: WindowDetails | null = null;
+    tracked: Tracked | null = null;
 
     restacker: SignalID = (global.display as GObject.Object).connect('restacked', () => {
-        if (this.window) this.restack(this.window.meta);
+        if (this.tracked) {
+            let actor: null | Clutter.Actor = null;
+
+            if (this.tracked.kind === 1) {
+                actor = this.tracked.meta.get_compositor_private();
+            } else if (this.tracked.stack.destroyed) {
+                this.untrack();
+            } else {
+                actor = this.tracked.stack.tabs;
+            }
+
+            if (actor) this.restack(actor);
+        }
     });
 
     constructor(dpi: number) {
@@ -67,7 +91,8 @@ export class ActiveHint {
     }
 
     is_tracking(entity: Entity): boolean {
-        return this.window ? Ecs.entity_eq(entity, this.window.entity) : false;
+        if (!this.tracked || this.tracked.kind !== 1) return false;
+        return this.tracked ? Ecs.entity_eq(entity, this.tracked.entity) : false;
     }
 
     position_changed(window: ShellWindow): void {
@@ -75,7 +100,7 @@ export class ActiveHint {
             this.hide();
         } else {
             this.show();
-            this.update_overlay();
+            this.update_overlay(window.meta.get_frame_rect());
         }
     }
 
@@ -86,43 +111,71 @@ export class ActiveHint {
         }
     }
 
-    restack(window: Meta.Window) {
-        const actor = window.get_compositor_private();
+    restack(actor: Clutter.Actor) {
         for (const box of this.border) {
-            global.window_group.set_child_above_sibling(box, actor);
+            global.window_group.set_child_below_sibling(box, actor);
         }
     }
 
-    track(window: ShellWindow) {
+    stack_changed(stack: Stack) {
+        if (!stack.destroyed) this.update_overlay(stack.container);
+    }
+
+    track_stack(stack: Stack) {
         this.disconnect_signals();
 
-        if (this.window) {
-            if (Ecs.entity_eq(this.window.entity, window.entity)) {
+        this.tracked = {
+            kind: 2,
+            stack,
+            sources: [stack.container.connect('allocation-changed', () => this.stack_changed(stack))],
+        };
+
+        this.update_overlay(stack.container);
+        this.restack(stack.container);
+    }
+
+    track_window(ext: Ext, window: ShellWindow) {
+        if (ext.auto_tiler && window.stack !== null) {
+            const stack = ext.auto_tiler.forest.stacks.get(window.stack);
+            if (stack) {
+                this.track_stack(stack);
+                return;
+            }
+        }
+
+        this.disconnect_signals();
+
+        if (this.tracked) {
+            if (this.tracked.kind === 1 && Ecs.entity_eq(this.tracked.entity, window.entity)) {
                 return;
             }
 
             this.untrack();
         }
 
-        if (window.meta.is_skip_taskbar()) return
+        const meta = window.meta;
+        if (meta.is_skip_taskbar()) return
 
-        const actor = window.meta.get_compositor_private();
+        const actor = meta.get_compositor_private();
         if (!actor) return;
 
         const parent = actor.get_parent();
 
         if (parent) {
-            this.window = {
+            this.tracked = {
+                kind: 1,
                 entity: window.entity,
-                meta: window.meta,
+                meta,
                 parent: parent,
-                source1: window.meta.connect('size-changed', () => this.position_changed(window)),
-                source2: window.meta.connect('position-changed', () => this.position_changed(window)),
+                sources: [
+                    meta.connect('size-changed', () => this.position_changed(window)),
+                    meta.connect('position-changed', () => this.position_changed(window))
+                ]
             };
 
             this.tracking = GLib.idle_add(GLib.PRIORITY_LOW, () => {
                 this.tracking = null;
-                this.update_overlay();
+                this.update_overlay(window.meta.get_frame_rect());
 
                 this.show();
 
@@ -130,7 +183,7 @@ export class ActiveHint {
             });
         }
 
-        this.restack(window.meta);
+        this.restack(actor);
     }
 
     untrack() {
@@ -138,45 +191,44 @@ export class ActiveHint {
 
         this.hide();
 
-        if (this.window) {
-            const actor = this.window.meta.get_compositor_private();
-            if (actor) {
-                this.window.meta.disconnect(this.window.source1);
-                this.window.meta.disconnect(this.window.source2);
+        if (this.tracked) {
+            let object = null;
+            if (this.tracked.kind === 1) {
+                object = this.tracked.meta;
+            } else if (!this.tracked.stack.destroyed) {
+                object = this.tracked.stack.container;
             }
 
-            this.window = null;
+            if (object) for (const s of this.tracked.sources) object.disconnect(s);
+
+            this.tracked = null;
         }
     }
 
-    update_overlay() {
-        if (this.window) {
-            const rect = this.window.meta.get_frame_rect();
+    update_overlay(rect: Rectangular) {
+        const width = 3 * this.dpi;
 
-            const width = 3 * this.dpi;
+        const [w, n, e, s] = this.border;
 
-            const [left, top, right, bottom] = this.border;
+        w.x = rect.x - width;
+        w.y = rect.y;
+        w.width = width;
+        w.height = rect.height;
 
-            left.x = rect.x - width;
-            left.y = rect.y;
-            left.width = width;
-            left.height = rect.height;
+        e.x = rect.x + rect.width;
+        e.y = rect.y;
+        e.width = width;
+        e.height = rect.height;
 
-            right.x = rect.x + rect.width;
-            right.y = rect.y;
-            right.width = width;
-            right.height = rect.height;
+        n.x = rect.x - width;
+        n.y = rect.y - width;
+        n.width = (2 * width) + rect.width;
+        n.height = width;
 
-            top.x = rect.x - width;
-            top.y = rect.y - width;
-            top.width = (2 * width) + rect.width;
-            top.height = width;
-
-            bottom.x = rect.x - width;
-            bottom.y = rect.y + rect.height;
-            bottom.width = (2 * width) + rect.width;
-            bottom.height = width;
-        }
+        s.x = rect.x - width;
+        s.y = rect.y + rect.height;
+        s.width = (2 * width) + rect.width;
+        s.height = width;
     }
 
     destroy() {

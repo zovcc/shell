@@ -36,6 +36,7 @@ interface X11Info {
 export class ShellWindow {
     entity: Entity;
     meta: Meta.Window;
+    stack: number | null = null;
 
     was_attached_to?: [Entity, boolean];
 
