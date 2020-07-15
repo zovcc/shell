@@ -272,7 +272,14 @@ export class Forest extends Ecs.World {
                 this.remove_from_stack(
                     fork.left.inner as Node.NodeStack,
                     window,
-                    () => this.delete_entity(fork_entity)
+                    () => {
+                        if (fork.right) {
+                            fork.left = fork.right;
+                            fork.right = null;
+                        } else {
+                            this.delete_entity(fork.entity);
+                        }
+                    }
                 );
             } else if (fork.right) {
                 if (fork.right.is_window(window)) {
