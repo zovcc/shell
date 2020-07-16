@@ -7,6 +7,7 @@ import type { ShellWindow } from "./window";
 import type { Stack } from './stack';
 
 import * as Ecs from 'ecs';
+import * as Tweener from 'tweener';
 
 const { GLib, St } = imports.gi;
 
@@ -31,7 +32,7 @@ interface StackDetails extends Details {
 export class ActiveHint {
     dpi: number;
 
-    private border: [St.Widget, St.Widget, St.Widget, St.Widget] = [
+    border: [St.Widget, St.Widget, St.Widget, St.Widget] = [
         new St.BoxLayout({
             reactive: false,
             style_class: 'pop-shell-active-hint',
@@ -80,6 +81,17 @@ export class ActiveHint {
         for (const box of this.border) {
             global.window_group.add_child(box);
             global.window_group.set_child_above_sibling(box, null);
+        }
+    }
+
+    animate_with(window: ShellWindow, x: number, y: number) {
+        if (this.tracked?.kind === 1 && Ecs.entity_eq(this.tracked.entity, window.entity)) {
+            for (const hint_actor of this.border) {
+                Tweener.add(hint_actor, { x, y, duration: 149, mode: null });
+                Tweener.on_actor_tweened(hint_actor, () => {
+                    this.update_overlay(window.meta.get_frame_rect());
+                });
+            }
         }
     }
 
