@@ -125,7 +125,7 @@ export class ActiveHint {
 
     restack(actor: Clutter.Actor) {
         for (const box of this.border) {
-            global.window_group.set_child_below_sibling(box, actor);
+            global.window_group.set_child_above_sibling(box, actor);
         }
     }
 

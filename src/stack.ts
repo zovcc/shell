@@ -5,8 +5,9 @@ import type { Entity } from './ecs';
 import type { Ext } from './extension';
 
 import * as Ecs from 'ecs';
-import * as Rect from 'rectangle';
+// import * as Rect from 'rectangle';
 
+// const GLib: GLib = imports.gi.GLib;
 const { St } = imports.gi;
 
 interface Component {
@@ -15,6 +16,8 @@ interface Component {
 }
 
 export class Stack {
+    ext: Ext;
+
     container: St.Widget = new St.BoxLayout({
         style_class: 'pop-shell-stack-bg',
         vertical: true
@@ -37,12 +40,14 @@ export class Stack {
 
     private restacker: SignalID = (global.display as GObject.Object).connect('restacked', () => this.restack());
 
-    constructor(active: Entity, workspace: number) {
+    constructor(ext: Ext, active: Entity, workspace: number) {
+        this.ext = ext;
         this.active = active;
         this.workspace = workspace;
 
-        global.window_group.insert_child_at_index(this.container, 1);
+        global.window_group.add_child(this.container);
         global.window_group.add_child(this.tabs);
+        this.reposition();
     }
 
     activate(entity: Entity) {
@@ -94,17 +99,28 @@ export class Stack {
 
     restack() {
         if (this.container.visible) {
-            // Check if a fullscreen window is above our stack.
-            const focused = global.display.get_focus_window() as (null | Meta.Window);
-            if (focused) {
-                const r = Rect.Rectangle.from_meta(focused.get_frame_rect());
-                if (r.contains(this.container)) return;
+            for (const w of this.windows) {
+                this.ext.actor_of(w.entity)?.hide()
             }
 
-            // Place actors if it's found that we're not behind a fullscreen window
-            global.window_group.set_child_at_index(this.container, 1);
-            global.window_group.set_child_above_sibling(this.tabs, null);
+            this.reposition();
         }
+    }
+
+    reposition() {
+        const window = this.ext.windows.get(this.active);
+        if (!window) return;
+
+        const actor = window.meta.get_compositor_private();
+        if (!actor) return;
+
+        actor.show();
+
+        if (!window.meta.is_fullscreen() && !window.is_maximized()) {
+            (global.window_group as Clutter.Actor).set_child_below_sibling(actor, this.tabs);
+        }
+
+        (global.window_group as Clutter.Actor).set_child_below_sibling(this.container, actor);
     }
 
     set_visible(visible: boolean) {
@@ -162,7 +178,7 @@ export class Stack {
                         window.meta.unminimize();
                         window.meta.activate(global.get_current_time());
 
-                        global.window_group.set_child_above_sibling(actor, null);
+                        this.reposition();
 
                         for (const comp of this.windows) {
                             comp.button.set_style_class_name('pop-shell-tab-inactive');

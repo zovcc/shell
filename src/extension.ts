@@ -490,7 +490,6 @@ export class Ext extends Ecs.System<ExtEvent> {
         // Hide / Show Stacks
         if (this.auto_tiler) {
             for (const container of this.auto_tiler.forest.stacks.values()) {
-                global.log(`container (${container.workspace}); active: ${cws}`)
                 container.set_visible((container.workspace === cws[1]));
             }
         }

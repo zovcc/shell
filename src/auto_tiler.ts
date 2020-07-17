@@ -335,7 +335,7 @@ export class AutoTiler {
 
                 if (fork.left.is_window(focused.entity)) {
                     // Assign left window as stack.
-                    focused.stack = this.forest.stacks.insert(new Stack(focused.entity, fork.workspace));
+                    focused.stack = this.forest.stacks.insert(new Stack(ext, focused.entity, fork.workspace));
                     fork.left = node.Node.stacked(focused.entity, focused.stack);
                     stack = fork.left.inner as node.NodeStack;
                     fork.measure(this.forest, ext, fork.area, this.forest.on_record());
@@ -344,7 +344,7 @@ export class AutoTiler {
                     if (node) fork.left = node;
                 } else if (fork.right?.is_window(focused.entity)) {
                     // Assign right window as stack
-                    focused.stack = this.forest.stacks.insert(new Stack(focused.entity, fork.workspace));
+                    focused.stack = this.forest.stacks.insert(new Stack(ext, focused.entity, fork.workspace));
                     fork.right = node.Node.stacked(focused.entity, focused.stack);
                     stack = fork.right.inner as node.NodeStack;
                     fork.measure(this.forest, ext, fork.area, this.forest.on_record());
